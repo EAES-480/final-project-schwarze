@@ -4,7 +4,7 @@
 Choose a dataset and:  
 
   * apply data science to explore and wrangle
-  * pose 2-3 good questions based
+  * pose 2-3 good questions based on your data exploration
   * answer the questions using methods from EAES 480
   * summarize your data, method, and results in README.md and a 5-min presentation.
 
