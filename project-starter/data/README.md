@@ -5,9 +5,21 @@ Place data file(s) in this folder.
 Then, include codebooks (variables, and their descriptions) for your data file(s)
 using the following format.
 
-## name of data file
+## correlation_dataframe_L7
 
-- `variable1`: Description of variable 1
-- `variable2`: Description of variable 2
-- `variable3`: Description of variable 3
-- ...
+- `bacteria`: The classification of the bacteria observed.
+- `Silt`: Fraction of soil defined as silt.
+- `Sand`: Fraction of soil defined as sand.
+- `Clay`: Fraction of soil defined as clay.
+- `Fe`: Fraction of iron in the soil.
+- `P`: Fraction of phosphorus in the soil.
+- `Rainfall`: Amount of rainfall experienced.
+- `Ca`: Fraction of calcium in the soil.
+- `SOM`: Fraction of soil organic matter in the soil.
+- `pH`: Acidity/pH of the soil.
+- `N`: Fraction of nitrogen in the soil. 
+
+## Full_16S_Map_09072020
+
+- 
+
