@@ -11,18 +11,19 @@ library(rbiom)
 library(stringr)
 ```
 
+> GM GRADE: 15.5/20 - good start, but please see my concerns below. 
+
+> Description: 6/8 - more detail is needed to explain how these samples were collected and what they are of exactly. Are these the dominant microbe observed in a range of soil samples? The main data set you plan to use is actually a correlation table (showing the correlation coefficients betwen a microbial abundance most likley, and an environmental variable). In other words these data are down-stream of an analysis.... I think you need to find a different way to use these data for the final project. Let's discuss tomorrow or Monday next week in lab.
+
+> Content: 8/10 - I was hoping to see more about how you might hand the fact the response variables are categorical, which is a new challenge. You also need to define what the variables are. For instance, the variable `bacteria` is a bit ambiguous, is it the most common one? Why is there only one bacteria. Also be careful that Archaea are included in the bacteria - make sure to distinguish them.
+
+> Quality: 1.5/2 - remember code-chunk labels and markdown syntax to list questions or list bullet points. And to remove unused code or code not relevant to your analysis of the `correlation_dataframe_L7.csv` dataset.
+
 ## 1. Data
 
 ```{r}
 df <- read_csv("../data/correlation_dataframe_L7.csv")
 glimpse(df)
-ds <- read_csv("../data/Full_16S_Map_09072020.csv")
-glimpse(ds)
-```
-
-```{r}
-ft <- read_biom("../data/feature-table.biom")
-glimpse(ft)
 ```
 
 The data I am using is on microbial communities in the Serengeti, specifically the Serengeti National Park in Tanzania, and how they respond to a variety of environmental conditions. I am specifically using the `correlation_dataframe_L7` data set. These include variables such as rainfall, soil organic matter, soil type, pH, and minerals. My general research questions then are "How do microbial communities in the Serengeti react to the environment? Which conditions affect them the most? Which do they favor?" 
@@ -50,6 +51,8 @@ My research questions are:
 `1. How do microbial communities in the Serengeti react to the environment?`
 `2. Which conditions affect them the most?`
 `3. Which do they favor?`
+
+> GM: Good questions, but I'm worried that the data are not going to answer them. 
 
 Because these are my questions, I decided to examine the bacteria (by phylum) to various environmental conditions present such as rainfall and soil type. I plan on making plots showing the correlation between variables and also running ANOVA tests to get more information on the variation in the data. 
 
