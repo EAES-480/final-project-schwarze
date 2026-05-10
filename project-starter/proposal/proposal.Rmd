@@ -9,6 +9,8 @@ library(tidyverse)
 library(broom)
 library(rbiom)
 library(stringr)
+library(dplyr)
+library(tidyr)
 ```
 
 ## 1. Data
@@ -16,18 +18,110 @@ library(stringr)
 ```{r}
 df <- read_csv("../data/correlation_dataframe_L7.csv")
 glimpse(df)
-ds <- read_csv("../data/Full_16S_Map_09072020.csv")
-glimpse(ds)
 ```
 
-```{r}
-ft <- read_biom("../data/feature-table.biom")
-glimpse(ft)
-```
 
 The data I am using is on microbial communities in the Serengeti, specifically the Serengeti National Park in Tanzania, and how they respond to a variety of environmental conditions. I am specifically using the `correlation_dataframe_L7` data set. These include variables such as rainfall, soil organic matter, soil type, pH, and minerals. My general research questions then are "How do microbial communities in the Serengeti react to the environment? Which conditions affect them the most? Which do they favor?" 
 
 ## 2. Exploratory Visualization
+
+```{r cleaning-data}
+
+df <- df %>%
+  mutate(
+    kingdom = ifelse(str_detect(bacteria, "k__Archaea"), "Archaea", "Bacteria")
+  )
+
+df_clean <- df %>%
+  mutate(
+    kingdom = str_extract(bacteria, "k__[^;]+") %>% str_remove("k__"),
+    phylum  = str_extract(bacteria, "p__[^;]+") %>% str_remove("p__")
+  )
+
+df_phylum_k <- df_clean %>%
+  group_by(kingdom, phylum) %>%
+  summarize(across(Silt:N, mean, na.rm = TRUE)) %>%
+  pivot_longer(
+    cols = Silt:N,
+    names_to = "variable",
+    values_to = "correlation"
+  )
+
+glimpse(df)
+```
+```{r}
+ggplot(df_phylum_k, aes(x = kingdom, y = correlation, fill = kingdom)) +
+  geom_boxplot() +
+  facet_wrap(~ variable) +
+  theme_minimal()
+```
+## ANOVA
+
+```{r anova-comparison, echo = F}
+kingdom_model <- aov(correlation ~ kingdom, data = df_phylum_k)
+summary(kingdom_model)
+
+phylum_model <- aov(correlation ~ phylum, data = df_phylum_k)
+summary(phylum_model)
+```
+
+Analyzing these results tells us there is strong significant and variability between kingdoms, seen by the F value of 32.78, which is much larger than 0.1, and an extremely small p-value of 7.99e-08 (much smaller than 0.5).There is also variation in the relationship between individual phyla, while not as extreme as between the bacteria and archaea, with a p-value of 6.62e-06. Some of the observations were excluded from these tests due to having unknown kingdoms. 
+
+```{r anova-tibbles, echo = FALSE}
+df_phylum_k %>%
+  group_by(variable) %>%
+  summarise(variance = var(correlation, na.rm = TRUE)) %>%
+  arrange(desc(variance))
+
+df_phylum_k %>%
+  group_by(variable) %>%
+  summarise(mean_abs_corr = mean(abs(correlation), na.rm = TRUE)) %>%
+  arrange(desc(mean_abs_corr))
+```
+```{r indiv-anova, echo = FALSE, warning = FALSE}
+anova_results <- df_phylum_k %>%
+  group_by(variable) %>%
+  do(tidy(aov(correlation ~ kingdom, data = .))) %>%
+  filter(term == "kingdom") %>%
+  select(variable, p.value, statistic) %>%
+  arrange(p.value)
+
+anova_results
+```
+
+
+
+```{r plotting-variables, echo = F}
+
+top_vars <- c("P", "Ca", "Clay", "Fe", "Sand", "Silt")
+
+df_phylum_k <- df_phylum_k %>%
+  filter(!is.na(phylum))
+
+df_plot <- df_phylum_k %>%
+  filter(variable %in% top_vars)
+
+df_plot <- df_plot %>%
+  mutate(phylum = fct_reorder(phylum, correlation))
+
+ggplot(df_plot, aes(x = phylum, y = correlation, fill = kingdom)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ variable) +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Phyla vs. Environmental Variable", 
+       y = "Variable", 
+       x = "Phylum") +
+theme(
+  axis.text.y = element_text(size = 6),
+  strip.text = element_text(size = 12, face = "bold"),
+  legend.position = "top"
+)
+
+```
+This collection of plots visualizes the strong correlation between phyla and soil type. 
+
+## Initial Plots
 
 ```{r}
 df %>%
@@ -35,21 +129,21 @@ df %>%
   summarise(across(c(Rainfall, Silt, Sand, Clay, Fe, P, Ca, SOM, pH),
                    mean, na.rm = TRUE))
 ```
-I decided to make this table because it groups the bacteria types by their relationships with each environmental condition. This information will be helpful when choosing which plots to create. 
+I decided to make this table because it groups the phylums by their relationships with each environmental condition. This information will be helpful when choosing which plots to create. 
 
 ```{r}
 df %>%
   count(phylum, sort = TRUE)
 ```
-This table shows how many of each bacteria type are present in the data.
+This table shows how many of each phylums are represented in the data.
 
 ## 3. Possible question and method
 
 My research questions are:
 
-`1. How do microbial communities in the Serengeti react to the environment?`
-`2. Which conditions affect them the most?`
-`3. Which do they favor?`
+- How do microbial communities in the Serengeti react to the environment?
+- Which conditions affect them the most?
+- Which do they favor?
 
 Because these are my questions, I decided to examine the bacteria (by phylum) to various environmental conditions present such as rainfall and soil type. I plan on making plots showing the correlation between variables and also running ANOVA tests to get more information on the variation in the data. 
 

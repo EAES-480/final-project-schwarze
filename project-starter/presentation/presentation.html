@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Microbial Communities in the Serengeti</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="AnaBelle Schwarze" />
+    <meta name="date" content="2026-05-05" />
+    <script src="libs/header-attrs-2.31/header-attrs.js"></script>
+    <link rel="stylesheet" href="xaringan-themer.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+.title[
+# Microbial Communities in the Serengeti
+]
+.author[
+### AnaBelle Schwarze
+]
+.institute[
+### University of Illinois at Chicago
+]
+.date[
+### 2026-05-05
+]
+
+---
+
+
+
+
+
+
+
+
+
+
+
+## Background:
+
+- Serengeti National Park, Tanzania
+
+- Variables:
+    + rainfall
+    + soil type (clay, sand, silt)
+    + SOM
+    + pH
+    + minerals (N, P, Fe, Ca)
+
+## Research questions:
+
+- How do microbial communities in the Serengeti react to the environment?
+
+- Which conditions affect them the most?
+
+- Is there a difference between individual phyla?
+
+---
+
+## Cleaning the Data
+
+
+``` r
+glimpse(df)
+```
+
+```
+## Rows: 50
+## Columns: 11
+## $ bacteria &lt;chr&gt; "k__Archaea;p__Crenarchaeota;c__Thaumarchaeota;o__Nitrosospha…
+## $ Silt     &lt;dbl&gt; 0.6685201, 0.5951462, 0.5176250, 0.4945089, 0.4634259, 0.4344…
+## $ Sand     &lt;dbl&gt; 0.6554444, 0.5624488, 0.5162872, 0.4845933, 0.4542991, 0.4382…
+## $ Clay     &lt;dbl&gt; 0.57466838, 0.45860572, 0.46765157, 0.42446268, 0.39820662, 0…
+## $ Fe       &lt;dbl&gt; 0.41644060, 0.33103368, 0.30729880, 0.32645269, 0.23720389, 0…
+## $ P        &lt;dbl&gt; 3.981603e-01, 1.427101e-01, 1.999013e-01, 2.779447e-01, 1.321…
+## $ Rainfall &lt;dbl&gt; 2.841869e-01, 8.162371e-02, 2.230520e-01, 1.929834e-01, 7.424…
+## $ Ca       &lt;dbl&gt; 0.271995782, 0.074869050, 0.142414745, 0.178461911, 0.1003822…
+## $ SOM      &lt;dbl&gt; 8.905503e-02, 8.734788e-02, 4.482784e-02, 9.650600e-02, 7.609…
+## $ pH       &lt;dbl&gt; 4.752400e-02, 2.556754e-03, 3.531690e-02, 2.535257e-02, 1.035…
+## $ N        &lt;dbl&gt; 0.0199255770, 0.0235838012, 0.0372264598, 0.0069737060, 0.117…
+```
+ 
+---
+
+## Cleaning the Data
+
+
+``` r
+df &lt;- df %&gt;%
+  mutate(
+    kingdom = ifelse(str_detect(bacteria, "k__Archaea"), "Archaea", "Bacteria")
+  )
+
+df_clean &lt;- df %&gt;%
+  mutate(
+    kingdom = str_extract(bacteria, "k__[^;]+") %&gt;% str_remove("k__"),
+    phylum  = str_extract(bacteria, "p__[^;]+") %&gt;% str_remove("p__")
+  )
+
+df_phylum_k &lt;- df_clean %&gt;%
+  group_by(kingdom, phylum) %&gt;%
+  summarize(across(Silt:N, mean, na.rm = TRUE), .groups = "drop") %&gt;%
+  pivot_longer(
+    cols = Silt:N,
+    names_to = "variable",
+    values_to = "correlation"
+  )
+```
+
+---
+
+## ANOVA
+
+
+```
+##              Df Sum Sq Mean Sq F value   Pr(&gt;F)    
+## kingdom       1 0.3264  0.3264   32.78 7.99e-08 ***
+## Residuals   118 1.1748  0.0100                     
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 10 observations deleted due to missingness
+```
+
+```
+##              Df Sum Sq Mean Sq F value   Pr(&gt;F)    
+## phylum       11 0.4887 0.04443   4.739 6.62e-06 ***
+## Residuals   108 1.0125 0.00937                     
+## ---
+## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+## 10 observations deleted due to missingness
+```
+
+
+
+---
+
+## ANOVA
+
+
+```
+## # A tibble: 10 × 3
+## # Groups:   variable [10]
+##    variable  p.value statistic
+##    &lt;chr&gt;       &lt;dbl&gt;     &lt;dbl&gt;
+##  1 P        0.000674   23.5   
+##  2 Ca       0.00161    18.3   
+##  3 Clay     0.00277    15.5   
+##  4 Fe       0.00316    14.9   
+##  5 Sand     0.00361    14.3   
+##  6 Silt     0.00464    13.2   
+##  7 Rainfall 0.0243      7.02  
+##  8 SOM      0.201       1.88  
+##  9 pH       0.346       0.977 
+## 10 N        0.800       0.0676
+```
+
+&lt;span style="color: blue;"&gt;Significant (&lt; 0.05): P, Ca, clay, Fe, sand, silt, rainfall (slighly)&lt;/span&gt;  
+
+&lt;span style="color: red;"&gt;Not significant (&gt; 0.05): SOM, pH, N&lt;/span&gt; 
+---
+
+## Plotting
+
+.center[
+&lt;img src="presentation_files/figure-html/plotting-variables-1.png" alt="" width="80%" /&gt;
+]
+
+---
+
+## Conclusions
+
+- Bacteria and Archaea respond differently to environmental conditions
+    - Kingdom-level differences are a driver of diversity in microbial communities
+    
+- Soil texture and mineral nutrients shape microbial community structure
+
+- Rainfall/moisture plays a secondary role 
+
+
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+  "ratio": "16:9",
+  "highlightStyle": "github",
+  "highlightLines": true,
+  "countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+// add `data-at-shortcutkeys` attribute to <body> to resolve conflicts with JAWS
+// screen reader (see PR #262)
+(function(d) {
+  let res = {};
+  d.querySelectorAll('.remark-help-content table tr').forEach(tr => {
+    const t = tr.querySelector('td:nth-child(2)').innerText;
+    tr.querySelectorAll('td:first-child .key').forEach(key => {
+      const k = key.innerText;
+      if (/^[a-z]$/.test(k)) res[k] = t;  // must be a single letter (key)
+    });
+  });
+  d.body.setAttribute('data-at-shortcutkeys', JSON.stringify(res));
+})(document);
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+// adds .remark-code-has-line-highlighted class to <pre> parent elements
+// of code chunks containing highlighted lines with class .remark-code-line-highlighted
+(function(d) {
+  const hlines = d.querySelectorAll('.remark-code-line-highlighted');
+  const preParents = [];
+  const findPreParent = function(line, p = 0) {
+    if (p > 1) return null; // traverse up no further than grandparent
+    const el = line.parentElement;
+    return el.tagName === "PRE" ? el : findPreParent(el, ++p);
+  };
+
+  for (let line of hlines) {
+    let pre = findPreParent(line);
+    if (pre && !preParents.includes(pre)) preParents.push(pre);
+  }
+  preParents.forEach(p => p.classList.add("remark-code-has-line-highlighted"));
+})(document);</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

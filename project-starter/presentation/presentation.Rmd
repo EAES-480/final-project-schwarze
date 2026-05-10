@@ -1,7 +1,7 @@
 ---
-title: "Presentation title"
-subtitle: "Presentation subtitle (if any)"
-author: "Team name <br> Names of team members"
+title: "Microbial Communities in the Serengeti"
+subtitle: ""
+author: "AnaBelle Schwarze"
 institute: "University of Illinois at Chicago"
 date: "`r Sys.Date()`"
 output:
@@ -31,148 +31,159 @@ knitr::opts_chunk$set(fig.retina = 3, dpi = 300, fig.width = 6, fig.asp = 0.618,
 
 ```{r load-data, include=FALSE}
 # Load your data here
+df <- read_csv("../data/correlation_dataframe_L7.csv")
 ```
 
-```{r}
+```{r, include=F}
 style_xaringan(
-  title_slide_background_image = "img/confetti.jpg"
+  title_slide_background_image = "img/green_microbes.jpg"
 )
 ```
 
 
-class: center, middle
+## Background:
 
-## A statement of the overall goal / research question
+- Serengeti National Park, Tanzania
 
----
+- Variables:
+    + rainfall
+    + soil type (clay, sand, silt)
+    + SOM
+    + pH
+    + minerals (N, P, Fe, Ca)
 
-class: inverse, center, middle
+## Research questions:
 
-# Section title
+- How do microbial communities in the Serengeti react to the environment?
 
----
+- Which conditions affect them the most?
 
-# Hello World
-
-- Click the `Knit` button to compile your presentation
-
-- Make sure to commit and push all resulting files to your GitHub repo
-
----
-
-class: inverse, middle, center
-
-# Using xaringan
+- Is there a difference between individual phyla?
 
 ---
 
-# xaringan
+## Cleaning the Data
 
-- The presentation is created using the `xaringan` package
+```{r}
+glimpse(df)
+```
+ 
+---
 
-- Use `---` to separate slides and `--` for incremental builds
+## Cleaning the Data
 
---
+```{r cleaning-data, echo = TRUE, message = FALSE, warning = FALSE}
 
-- Like this
+df <- df %>%
+  mutate(
+    kingdom = ifelse(str_detect(bacteria, "k__Archaea"), "Archaea", "Bacteria")
+  )
+
+df_clean <- df %>%
+  mutate(
+    kingdom = str_extract(bacteria, "k__[^;]+") %>% str_remove("k__"),
+    phylum  = str_extract(bacteria, "p__[^;]+") %>% str_remove("p__")
+  )
+
+df_phylum_k <- df_clean %>%
+  group_by(kingdom, phylum) %>%
+  summarize(across(Silt:N, mean, na.rm = TRUE), .groups = "drop") %>%
+  pivot_longer(
+    cols = Silt:N,
+    names_to = "variable",
+    values_to = "correlation"
+  )
+```
 
 ---
 
-# Layouts
+## ANOVA
 
-You can use plain text
+```{r anova-comparison, echo = F}
+kingdom_model <- aov(correlation ~ kingdom, data = df_phylum_k)
+summary(kingdom_model)
 
-- or bullet points
+phylum_model <- aov(correlation ~ phylum, data = df_phylum_k)
+summary(phylum_model)
+```
 
-.pull-left[
-or text in two columns $^*$
+
+
+---
+
+## ANOVA
+
+```{r indiv-anova, echo = FALSE, warning = FALSE}
+anova_results <- df_phylum_k %>%
+  group_by(variable) %>%
+  do(tidy(aov(correlation ~ kingdom, data = .))) %>%
+  filter(term == "kingdom") %>%
+  select(variable, p.value, statistic) %>%
+  arrange(p.value)
+
+anova_results
+```
+
+<span style="color: blue;">Significant (< 0.05): P, Ca, clay, Fe, sand, silt, rainfall (slighly)</span>  
+
+<span style="color: red;">Not significant (> 0.05): SOM, pH, N</span> 
+---
+
+## Plotting
+
+.center[
+```{r plotting-variables, echo = F}
+
+top_vars <- c("P", "Ca", "Clay", "Fe", "Sand", "Silt")
+
+df_phylum_k <- df_phylum_k %>%
+  filter(!is.na(phylum))
+
+df_plot <- df_phylum_k %>%
+  filter(variable %in% top_vars)
+
+df_plot <- df_plot %>%
+  mutate(phylum = fct_reorder(phylum, correlation))
+
+ggplot(df_plot, aes(x = phylum, y = correlation, fill = kingdom)) +
+  geom_col(position = "dodge") +
+  facet_wrap(~ variable) +
+  coord_flip() +
+  theme_minimal() +
+  labs(title = "Phyla vs. Environmental Variable", 
+       y = "Variable", 
+       x = "Phylum") +
+scale_fill_manual(
+    values = c(
+      "Bacteria" = "limegreen",
+      "Archaea"  = "mediumpurple3"
+    ) 
+  ) +
+theme(
+  plot.title = element_text(size = 10, face = "bold"),
+  plot.title.position = "plot",
+  axis.title = element_text(size = 10),
+  axis.text.y = element_text(size = 6),
+  strip.text = element_text(size = 10, face = "bold"),
+  legend.position = "top",
+  legend.title = element_text(size = 9),
+  legend.text = element_text(size = 7),
+  plot.margin = margin(t = 20, r = 20, b = 20, l = 20)
+) +
+labs(fill = "Microbial Kingdom")
+
+```
 ]
-.pull-right[
-- like
-- this
-]
-
-.footnote[
-[*] And add footnotes
-]
 
 ---
 
-# Code
+## Conclusions
 
-```{r boring-regression}
-# a boring regression
-model <- lm(dist ~ speed, data = cars)
-tidy(model)
-glance(model)
-```
+- Bacteria and Archaea respond differently to environmental conditions
+    - Kingdom-level differences are a driver of diversity in microbial communities
+    
+- Soil texture and mineral nutrients shape microbial community structure
 
----
-
-# Plots
-
-```{r recode-species, echo = FALSE}
-# In this chunk I'm doing a bunch of analysis that I don't want to present 
-# in my slides. But I need the resulting data frame for a plot I want to present.
-iris_modified <- iris %>%
-  mutate(Species = fct_other(Species, keep = "setosa"))
-```
-
-```{r plot-iris, echo = FALSE}
-# Code hidden with echo = FALSE
-# Uses modified iris dataset from previous chunk
-# Play around with height and width until you're happy with the look
-ggplot(data = iris_modified, mapping = aes(x = Sepal.Width, y = Sepal.Length, color = Species)) +
-  geom_point() + 
-  theme_minimal() # theme options: https://ggplot2.tidyverse.org/reference/ggtheme.html
-```
-
----
-
-## Plot and text
-
-.pull-left[
-- Some text
-- goes here
-]
-.pull-right[
-```{r warning=FALSE, out.width="100%", fig.width=4, echo=FALSE}
-# see how I changed out.width and fig.width from defaults
-# to make the figure bigger
-ggplot(penguins, aes(x = bill_length_mm, y = species, color = species)) +
-  geom_boxplot() +
-  theme_minimal()
-```
-]
-
----
-
-# Tables
-
-If you want to generate a table, make sure it is in the HTML format (instead of Markdown or other formats), e.g.,
-
-```{r iris-table, echo = FALSE}
-kable(head(iris), format = "html")
-```
-
----
-
-# Images
-
-```{r castle, echo = FALSE, out.width = "60%", fig.align = "center", fig.cap = "Image credit: Photo by Enjoy Illinois."}
-include_graphics("img/chicago-fall.jpeg")
-```
+- Rainfall/moisture plays a secondary role 
 
 
----
-
-# Feeling adventurous?
-
-- Want to find out more about `xaringan`? See https://slides.yihui.name/xaringan/#1.
-
-- You are welcomed to use the default styling of the slides. In fact, that's what I expect majority of you will do. You will differentiate yourself with the content of your presentation.
-
-- But some of you might want to play around with slide styling. The 
-`xaringanthemer` provides some solutions for this that: https://pkg.garrickadenbuie.com/xaringanthemer.
-
-- And if you want more bells and whistles, there is also `xaringanExtra`: https://pkg.garrickadenbuie.com/xaringanExtra.
